@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+# You could also put these in config.sh, which is
+# automatically sourced when letsencrypt.sh runs
+export CF_EMAIL="{{CF_email}}"
+export CF_KEY="{{CF_key}}"
+
+date
+
+source /home/letsencrypt/letsencrypt.sh/venv/bin/activate
+/home/letsencrypt/letsencrypt.sh/letsencrypt.sh -c
+
+echo ""
+
+# service nginx restart

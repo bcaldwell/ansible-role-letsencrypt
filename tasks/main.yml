@@ -1,0 +1,89 @@
+---
+- name: Addd eadsnakes-python2.7 repo
+  apt_repository: repo='ppa:fkrull/deadsnakes-python2.7' state=present
+  become: true
+
+- name: Upgrade python2
+  apt: name={{item}} state=present update_cache=yes
+  with_items:
+    - python2.7
+    - python2.7-dev
+  become: true
+
+- name: Install virtualenv
+  pip: name=virtualenv
+  become: true
+
+- name: Create admin user
+  user:
+    name=letsencrypt
+    state=present
+    shell=/bin/bash
+  become: true
+
+- name: Install dependencies for cryptography
+  apt: name={{item}} state=present update_cache=yes
+  with_items:
+    - build-essential
+    - libssl-dev
+    - libffi-dev
+    - python-dev
+  become: true
+
+- name: clone letsencrypt.sh
+  git:
+    repo=https://github.com/lukas2511/letsencrypt.sh.git
+    dest=/home/letsencrypt/letsencrypt.sh
+  become: true
+
+- name: clone etsencrypt.sh cloudflare hook
+  git:
+    repo=https://github.com/kappataumu/letsencrypt-cloudflare-hook.git
+    dest=/home/letsencrypt/letsencrypt.sh/hooks/cloudflare
+  become: true
+
+- name: Install requirements for cloudflare hook
+  pip:
+    requirements=/home/letsencrypt/letsencrypt.sh/hooks/cloudflare/requirements-python-2.txt
+    virtualenv=/home/letsencrypt/letsencrypt.sh/venv
+  become: true
+
+- name: Copy config
+  template: src=config.j2 dest=/home/letsencrypt/letsencrypt.sh/config
+  become: true
+
+
+- name: Create domains.txt
+  lineinfile:
+    dest=/home/letsencrypt/letsencrypt.sh/domains.txt
+    line="{{ domains | regex_replace('[ ]*,[ ]*|[ ]+/g', ' ') }}"
+    create=yes
+  become: true
+
+
+- name: Get certificate
+  shell: . /home/letsencrypt/letsencrypt.sh/venv/bin/activate && ./letsencrypt.sh -c
+  args:
+    chdir: /home/letsencrypt/letsencrypt.sh
+  become: true
+  environment:
+    - CF_EMAIL: "{{CF_email}}"
+    - CF_KEY: "{{CF_key}}"
+  register: letsencryptsh_result
+  changed_when: "' Skipping renew!' in letsencryptsh_result.stdout"
+
+- debug: var=letsencryptsh_result.stdout_lines
+
+- name: Copy cron job
+  template:
+    src=cron.j2
+    dest=/home/letsencrypt/letsencrypt.sh/cron.sh
+    mode=0755
+  become: true
+
+- name: Create cron job to renew cert monthly
+  cron:
+    name="Renew ssl cert"
+    special_time="monthly"
+    job="/home/letsencrypt/letsencrypt.sh/cron.sh >> /home/letsencrypt/letsencrypt.sh/cron.log 2>&1"
+  become: true
