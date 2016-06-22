@@ -1,7 +1,7 @@
-Role Name
+letsencrypt
 =========
 
-This role gets SSL/TLS certificate from let's encrypt and sets up a cron job to renew the certificate. 
+This role gets SSL/TLS certificate from let's encrypt and sets up a cron job to renew the certificate. This role uses cloudflare to verify domain ownership.
 
 Requirements
 ------------
