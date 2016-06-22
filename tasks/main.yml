@@ -1,26 +1,4 @@
 ---
-- name: Addd eadsnakes-python2.7 repo
-  apt_repository: repo='ppa:fkrull/deadsnakes-python2.7' state=present
-  become: true
-
-- name: Upgrade python2
-  apt: name={{item}} state=present update_cache=yes
-  with_items:
-    - python2.7
-    - python2.7-dev
-  become: true
-
-- name: Install virtualenv
-  pip: name=virtualenv
-  become: true
-
-- name: Create admin user
-  user:
-    name=letsencrypt
-    state=present
-    shell=/bin/bash
-  become: true
-
 - name: Install dependencies for cryptography
   apt: name={{item}} state=present update_cache=yes
   with_items:
@@ -28,6 +6,19 @@
     - libssl-dev
     - libffi-dev
     - python-dev
+    - git
+    - python-pip
+  become: true
+
+- name: Install virtualenv
+  pip: name=virtualenv
+  become: true
+
+- name: Create letsencrypt user
+  user:
+    name=letsencrypt
+    state=present
+    shell=/bin/bash
   become: true
 
 - name: clone letsencrypt.sh
